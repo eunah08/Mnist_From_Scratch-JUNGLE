@@ -33,7 +33,7 @@
 ### 참고 기록
 | 출처(교재·동료·AI) | 무엇을 참고했는가 | 내 코드에서 검증한 방법 |
 | --- | --- | --- |
-| AI (Claude Code) | forward 3개 코드, 설명, 기록 초안 | AI가 직접 계산과 테스트 실행 |
+| AI (Claude Code) | forward 3개 코드 초안과 설명 참고 | 작은 배열 계산과 테스트로 확인 |
 
 ### 코드 없이 답할 질문 3개
 1. `Affine.forward`는 왜 `x`를 저장할까?
@@ -43,3 +43,36 @@
 3. logits가 모두 같으면 왜 loss가 `ln(10)`일까?
     - 10개 클래스의 확률이 모두 1/10이 되기 때문
     - loss = `-ln(정답 클래스의 확률)` = `-ln(1/10)` = `ln(10)`
+
+## Day 2 - 2026-11-28
+
+### 오늘 구현한 것
+- `SoftmaxWithLoss.backward`: `(확률 - one_hot) / B`
+- `ReLU.backward`: forward의 `mask` 위치는 gradient 0
+- `Affine.backward`: `dW`, `db`, `dx` 계산
+
+### 오늘 확인한 shape와 수식
+- 입력/출력 shape (backward):
+    1. `dlogits (B,10)`
+    2. Affine 2: `dW2 (H,10)`, `db2 (10,)`, `dx (B,H)`
+    3. ReLU: `(B,H) → (B,H)`
+    4. Affine 1: `dW1 (784,H)`, `db1 (H,)`, `dx (B,784)`
+- 예시 계산: 확률 `[0.5,0.5]`, 정답 0, B=1이면 `dlogits = [-0.5, 0.5]`
+- 반드시 성립해야 하는 조건: `dW`, `db`, `dx`의 shape는 각각 `W`, `b`, `x`와 같고, `dlogits`의 합은 0에 가까움
+
+### 막힌 지점과 해결 과정
+- 증상: gradient check의 최대 상대 오차가 `0.00e+00`으로 나옴
+- 내가 세운 가설:
+- 시도 1: 제공 코드 확인 (차이가 `1e-8` 이하면 0으로 처리)
+- 시도 2: 0 처리를 끄고 실행(`5.9e-09`), `db`를 일부러 틀리게 해 실패하는지 확인
+- 해결 또는 다음 확인 항목: 검사가 정상 동작함, 다음은 Day 3
+
+### 참고 기록
+| 출처(교재·동료·AI) | 무엇을 참고했는가 | 내 코드에서 검증한 방법 |
+| --- | --- | --- |
+| AI (Claude Code) | backward 3개 코드 초안과 설명 참고 | selfcheck 26개와 gradient check 2개로 확인 |
+
+### 코드 없이 답할 질문 3개
+1. `dW`, `db`, `dx`의 shape는 각각 무엇과 같아야 할까?
+2. ReLU backward에서 gradient가 0이 되는 위치는 어디일까?
+3. gradient check는 어떤 두 gradient를 비교할까?
